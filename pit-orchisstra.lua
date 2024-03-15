@@ -177,7 +177,7 @@ g = grid.connect()
 -- CONSTANTS --------------------------------------------
 kDisplayWidth = 16 -- synthstrom deluge variable name
 kDisplayHeight = 8 -- synthstrom deluge variable name
-SNAKE_MAX_LENGTH = 30 -- I guess if the snake is 16 * 8 = 128 it'd fill the screen???
+SNAKE_MAX_LENGTH = 128 -- I guess if the snake is 16 * 8 = 128 it'd fill the screen???
 SNAKE_MIN_LENGTH = 1 -- can't get smaller than 1 pad, right?
 SNAKE_UP = 1
 SNAKE_RIGHT = 2
@@ -187,11 +187,12 @@ SNAKE_MAX_SPEED = 70 -- dimishing aesthetic differences above 70, but could go h
 SNAKE_MIN_SPEED = 1 -- currently integer speed so this is min, could rewrite to allow decimals?
 SNAKE_BEHAVIORS = 4
 initBody = {}
-for i = 1,SNAKE_MAX_LENGTH do
-    initBody[i] = {x = 0, y = 0}
-end
-initBody[1].x = 1
-initBody[1].y = 1
+initBody[1] = {x = 1, y = 1}
+-- for i = 1,SNAKE_MAX_LENGTH do
+--     initBody[i] = {x = 0, y = 0}
+-- end
+-- initBody[1].x = 1
+-- initBody[1].y = 1
 foodGrid = {}
 foodOrder = {}
 snakes = {}
@@ -208,7 +209,6 @@ popUpKeyboard = 0
 popUpKeyboardText = ""
 keeb = {}
 BAD_CODE = "CAW!"
-
 
 -- SNAKE PARAMS -----------------------------------------
 -- settings for each snake
@@ -442,7 +442,7 @@ function SnakeClass:checkBehavior ()
             end
 
         else
-            print("HOW DID YOU GET HERE?")
+            print("HOW DID YOU GET HERE? 3")
         end
 
     
@@ -579,7 +579,7 @@ function SnakeClass:checkBehavior ()
                 end
     
             else
-                print("HOW DID YOU GET HERE?")
+                print("HOW DID YOU GET HERE? 4")
             end
 
             -- each direction has same logic
@@ -681,7 +681,7 @@ function SnakeClass:slither()
 end
 
 -- check if head location is at food, eat food
-function SnakeClass:grow ()
+function SnakeClass:grow()
     -- get head coordinates
     local snakex = self.body[1].x
     local snakey = self.body[1].y
@@ -726,7 +726,7 @@ function SnakeClass:grow ()
         end 
 
         -- SING
-        local player = 0 -- idk just get the correct player, probably should be part of SnakeClass
+        local player = 0 -- get the player, probably should be part of SnakeClass
         if     self.snakeID == 1 then
             player = params:lookup_param("nb_1"):get_player()
         elseif self.snakeID == 2 then
@@ -746,13 +746,9 @@ function SnakeClass:grow ()
             engine.freq(mutil.note_num_to_freq(snakeNote), self.snakeID) -- current freq to midi, add offset, midi to freq, set engine freq
             engine.trigger(self.snakeID) -- triggers internal rudiments SC engine
         end
-        player:note_on(snakeNote, 1) -- TO DO 16 x 8 grid of notes, get note based on x, y
+        player:note_on(snakeNote, 1)
         
         -- PLACE NEW FOOD
-        -- make a temporary list of unoccupied spaces, 
-        -- maybe make this not temporary and keep an ongoing updated list of unoccupied spaces?
-        -- list of where food is, list of snake coordinates(which is body), list of unoccupied?
-        -- turn off foodSpawning if you want to
         if params:get("foodSpawn") == 1 then
             notOccupied = {}
             numNotOccupied = 0
@@ -760,9 +756,13 @@ function SnakeClass:grow ()
                 for idx = 1,kDisplayWidth do
                     -- check if food is here
                     if foodGrid[idy][idx] == 0 then
-                        -- check snake is here
+                        -- check if snake is here
                         for i = 1,self.length do
                             -- if body segment coordinates not equal to index then
+                            -- doesn't check all snakes, it could but I want to fill the grid
+                            -- more than I want to not accidentally spawn a food on a square already
+                            -- occupied by another snake, it's good enough to spawn on any square that the
+                            -- snake that just ate isn't currently occupying
                             if not (self.body[i].x == idx and self.body[i].y == idy) then
                                 -- unoccupied!
                                 numNotOccupied = numNotOccupied + 1
@@ -792,9 +792,10 @@ function SnakeClass:die()
     -- reset length, randomize coordinates of head
     self.length = SNAKE_MIN_LENGTH
     self.body = {}
-    for i = 1,SNAKE_MAX_LENGTH do
-        self.body[i] = {x = 0, y = 0}
-    end
+    self.body[1] = {x = 0, y = 0}
+    -- for i = 1,SNAKE_MAX_LENGTH do
+    --     self.body[i] = {x = 0, y = 0}
+    -- end
     self.body[1].x = math.random(1,kDisplayWidth)
     self.body[1].y = math.random(1,kDisplayHeight)
     -- print("snake died :(")
@@ -869,7 +870,6 @@ function enc(n,d)
                 end
                 snakes[sel].speed = libutil.clamp(temp, 1, SNAKE_MAX_SPEED)
                 params:set("speed_"..sel, snakes[sel].speed) -- update param menu
-                print(snakes[sel].speed)
             end
         else -- placing food
             if d < 0 then -- left
@@ -938,29 +938,29 @@ end
 function SnakeClass:killSnake()
     -- snake can die
     if self.immortal == 0 then
-        -- die if collide with self body
-        if self.length >= 2 then
-            for i = 2, self.length do
-                if (self.body[1].x == snakes[1].body[i].x) and 
-                   (self.body[1].y == snakes[1].body[i].y) then
-                    -- snake should die
-                    self:die()
-                    break
+        -- check each snake position
+        for s = 1, SNAKE_MAX_COUNT do
+            -- check self
+            if s == self.snakeID then
+                for i = 2, self.length do
+                    -- if head is at a body segment of self
+                    if (self.body[1].x == self.body[i].x) and 
+                       (self.body[1].y == self.body[i].y) then
+                        -- snake should die
+                        self:die()
+                        return
+                    end
                 end
-            end
 
-        -- die if collide with other snake
-        else 
-            for s = 1, SNAKE_MAX_COUNT do
-                if self.snakeID ~= snakes[s].snakeID then
-                    for i = 1, snakes[s].length do
-                        -- if head is at body segment of other snake
-                        if (self.body[1].x == snakes[s].body[i].x) and 
-                           (self.body[1].y == snakes[s].body[i].y) then
-                            -- snake should die
-                            self:die()
-                            break
-                        end
+            -- check other snakes
+            else
+                for i = 1, snakes[s].length do
+                    -- if head is at a body segment of other snake
+                    if (self.body[1].x == snakes[s].body[i].x) and 
+                       (self.body[1].y == snakes[s].body[i].y) then
+                        -- snake should die
+                        self:die()
+                        return
                     end
                 end
             end
@@ -992,8 +992,8 @@ function refreshGrid()
     -- light up snakes
     for s = 1, SNAKE_MAX_COUNT do
         if snakes[s].slithering == 1 then
-            for i = 1, snakes[s].length do
-                if (snakes[s].body[i].x > 0) and (snakes[s].body[i].y > 0) then
+            for i = 1, snakes[s].length do -- used to be #snakes[s].body, idk if that mattered
+                if (snakes[s].body[i].x > 0) and (snakes[s].body[i].y > 0) then -- do we need to check this?
                     g:led(snakes[s].body[i].x, snakes[s].body[i].y, 15)
                 end
             end
@@ -1013,7 +1013,7 @@ function redraw()
                 l = 6
             end
             for s = 1, SNAKE_MAX_COUNT do
-                for i = 1, #snakes[s].body do
+                for i = 1, snakes[s].length do
                     if snakes[s].body[i].x == idx and snakes[s].body[i].y == idy then
                         l = 15
                     end
@@ -1118,33 +1118,33 @@ function setupKeyboardControls()
 
     -- selected snake controls
     keeb["Q"] = function() -- toggle snake slithering
-        snek = params:get("snake_select")
-        if snakes[snek].slithering == 0 then
-            snakes[snek].slithering = 1
-            params:set("slithering_"..snek, 1)
+        local sel = params:get("snake_select")
+        if params:get("slithering_"..sel) == 0 then
+            params:set("slithering_"..sel, 1)
+            snakes[sel].slithering = 1
         else
-            snakes[snek].slithering = 0
-            params:set("slithering_"..snek, 0)
+            params:set("slithering_"..sel, 0)
+            snakes[sel].slithering = 0
         end
     end
     keeb["E"] = function() -- toggle snake immortality
         local sel = params:get("snake_select")
-        if snakes[sel].immortal == 0 then
-            snakes[sel].immortal = 1
+        if params:get("immortal_"..sel) == 0 then
             params:set("immortal_"..sel, 1)
+            snakes[sel].immortal = 1
         else
-            snakes[sel].immortal = 0
             params:set("immortal_"..sel, 0)
+            snakes[sel].immortal = 0
         end
     end
     keeb["F"] = function() -- increase snake whimsy
         local sel = params:get("snake_select")
-        snakes[sel].whimsy = util.clamp(snakes[sel].whimsy + 1, 0, 10)
+        snakes[sel].whimsy = util.clamp(snakes[sel].whimsy - 1, 0, 10)
         params:set("transpose_"..sel, snakes[sel].whimsy)
     end
     keeb["G"] = function() -- decrease snake whimsy
         local sel = params:get("snake_select")
-        snakes[sel].whimsy = util.clamp(snakes[sel].whimsy - 1, 0, 10)
+        snakes[sel].whimsy = util.clamp(snakes[sel].whimsy + 1, 0, 10)
         params:set("transpose_"..sel, snakes[sel].whimsy)
     end
     keeb["R"] = function() -- toggle snake quantize
@@ -1280,12 +1280,12 @@ function setup_params()
         params:add_control("freq" .. j, "osc " .. j .. " freq", controlspec.new(20, 10000, 'lin', 1, 120, 'hz'))
         params:set_action("freq" .. j, function(x) engine.freq(x, j) end)
         -- ENV
-        params:add_control("decay" .. j, "env " .. j .. " decay", controlspec.new(0.05, 1, 'lin', 0.01, 0.3, 'sec'))
+        params:add_control("decay" .. j, "env " .. j .. " decay", controlspec.new(0.05, 1, 'lin', 0.01, 0.25, 'sec'))
         params:set_action("decay" .. j, function(x) engine.decay(x, j) end)
         params:add_control("sweep" .. j, "env " .. j .. " sweep", controlspec.new(0, 2000, 'lin', 0.5, 0, ''))
         params:set_action("sweep" .. j, function(x) engine.sweep(x, j) end)
         -- LFO
-        params:add_control("lfoFreq" .. j, "lfo " .. j .. " freq", controlspec.new(1, 1000, 'lin', 0.5, 11, 'hz'))
+        params:add_control("lfoFreq" .. j, "lfo " .. j .. " freq", controlspec.new(1, 1000, 'lin', 0.25, 11, 'hz'))
         params:set_action("lfoFreq" .. j, function(x) engine.lfoFreq(x, j) end)
         params:add_control("lfoShape" .. j, "lfo " .. j .. " shape", controlspec.new(0, 1, 'lin', 1, 0, ''))
         params:set_action("lfoShape" .. j, function(x) engine.lfoShape(x, j) end)
@@ -1436,7 +1436,7 @@ function init()
         params:set("slithering_"..i, 0)
         snakes[i].slithering = 0
         snakes[i]:die()
-        snakes[i].body[1].x =  0
+        snakes[i].body[1].x = 0
         snakes[i].body[1].y = 0
     end
 
