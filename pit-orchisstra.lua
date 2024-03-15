@@ -49,40 +49,47 @@
 
 
 --[[
-KEYBOARD CONTROLS
-Q   decrement snake selection (-1) 
-E   increment snake selection (+1)
+1   select snake 1
+2   select snake 2
+3   select snake 3
+4   select snake 4
+TAB   toggle foodView ON/OFF
 
-selected snake:
+selected snake controls:
 W   increase speed
 A   turn left
 S   decrease speed
 D   turn right
-F   cycle through snake behaviors of the selected snake (1,2,3,4) (wraps)
-R   toggle immortality
+SPACE   cycle snake behaviors
+Q   toggle slithering (TURN ON THE SNAKE)
+E   toggle immortality
+R   toggle quantize
+F   decrease whimsy
+G   increase whimsy
+SHIFT + W   increase transpose
+SHIFT + A   decrease max length
+SHIFT + S   decrease transpose
+SHIFT + D   increase max length
 
-SPACE   toggle foodView ON/OFF
-foodView overwrites some snake controls (F, W, A, S, D)
-You're in foodView if a cursor spawns inside a square.
-The first time you enter foodView, the cursor will spawn inside the top left square. 
+foodView controls:
 W   move up
 A   move left
 S   move down
 D   move right
-F   place food
+SPACE   place food
+cursor spawns inside the top left square initially
+other snake controls remain the same in foodView
 
 global controls:
-1   toggle snake 1
-2   toggle snake 2
-3   toggle snake 3
-4   toggle snake 4
-5   toggle food spawn
-6   toggle food immortality
-7   toggle strict food order
+8   toggle food spawn
+9   toggle food immortality
+0   toggle strict food order
+BACKSPACE   clear food grid
 Z   decrement noteRowOffset (-1)
 X   increment noteRowOffset (+1)
 C   decrement scale (-1)
 V   increment scale (+1)
+/   toggle two player mode
 
 
 SNAKE SETTINGS
@@ -90,7 +97,7 @@ nb snake 1-4: select the nb voice for the snake
 selected snake: selects snake 1, 2, 3, or 4
 slithering: 0 removes snake, 1 spawns snake
 behavior: defines the movement of the snake (see more details below)
-speed: 1-20, syncs to norns clock tempo
+speed: 1-70, syncs to norns clock tempo
 immortal: 0 can be killed, 1 all hail immortal snek
 whimsy: 0-10, 0-100% chance to flip a coin to turn left or right
 transpose: midi note offset for nb voices
@@ -170,16 +177,14 @@ g = grid.connect()
 -- CONSTANTS --------------------------------------------
 kDisplayWidth = 16 -- synthstrom deluge variable name
 kDisplayHeight = 8 -- synthstrom deluge variable name
-kMaxNumKeyboardPadPresses = 10 -- synthstrom deluge variable name
-SNAKE_MAX_LENGTH = kMaxNumKeyboardPadPresses
+SNAKE_MAX_LENGTH = 30 -- I guess if the snake is 16 * 8 = 128 it'd fill the screen???
 SNAKE_MIN_LENGTH = 1 -- can't get smaller than 1 pad, right?
 SNAKE_UP = 1
 SNAKE_RIGHT = 2
 SNAKE_DOWN = 3
 SNAKE_LEFT = 4
-SNAKE_MAX_SPEED = 20 
--- with updating the screen and grid, the max speed is now 20
-SNAKE_MIN_SPEED = 1 -- currently integer speed so this is min
+SNAKE_MAX_SPEED = 70 -- dimishing aesthetic differences above 70, but could go higher :)
+SNAKE_MIN_SPEED = 1 -- currently integer speed so this is min, could rewrite to allow decimals?
 SNAKE_BEHAVIORS = 4
 initBody = {}
 for i = 1,SNAKE_MAX_LENGTH do
@@ -196,6 +201,13 @@ foodCursorX = 1
 foodCursorY = 1
 scaleNames = {"Ionian", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Aeolian", "Locrian"}
 noteArray = mutil.generate_scale(0, "major", 10)
+imageQueue = {}
+popUpSelect = 0
+popUpBehavior = 0
+popUpKeyboard = 0
+popUpKeyboardText = ""
+keeb = {}
+BAD_CODE = "CAW!"
 
 
 -- SNAKE PARAMS -----------------------------------------
@@ -230,6 +242,13 @@ snake_specs = {
         min = 0,
         max = 1,
         default = 0
+    },  
+    {
+        id = 'maxLength',
+        name = 'maxLength',
+        min = 0,
+        max = SNAKE_MAX_LENGTH,
+        default = 10
     },  
     {
         id = 'whimsy',
@@ -465,13 +484,17 @@ function SnakeClass:checkBehavior ()
                 -- behind is if y coordinate of food > than y coordinate of head
                 local yDifference = (foody - heady)
                 if yDifference > 0 then
-                    -- ahead of us
-                    squaresAhead = kDisplayHeight - math.abs(yDifference)
-                    squaresBehind = math.abs(yDifference)
-                elseif yDifference < 0 then
                     -- behind us
-                    squaresAhead = yDifference
-                    squaresBehind = kDisplayHeight - yDifference
+                    squaresAhead = kDisplayHeight - yDifference
+                    squaresBehind = yDifference
+                    -- squaresAhead = yDifference
+                    -- squaresBehind = kDisplayHeight - yDifference
+                elseif yDifference < 0 then
+                    -- ahead of us
+                    squaresAhead = math.abs(yDifference)
+                    squaresBehind = kDisplayHeight - math.abs(yDifference)
+                    -- squaresAhead = kDisplayHeight - math.abs(yDifference)
+                    -- squaresBehind = math.abs(yDifference)
                 end
 
                 -- left is -x, right is +x coordinate
@@ -512,11 +535,15 @@ function SnakeClass:checkBehavior ()
                 -- ahead is +y, behind is -y
                 local yDifference = (foody - heady)
                 if yDifference > 0 then
-                    squaresBehind = kDisplayHeight - math.abs(yDifference)
-                    squaresAhead = math.abs(yDifference)
+                    squaresBehind = kDisplayHeight - yDifference
+                    squaresAhead = yDifference
+                    -- squaresBehind = kDisplayHeight - math.abs(yDifference)
+                    -- squaresAhead = math.abs(yDifference)
                 elseif yDifference < 0 then
-                    squaresBehind = yDifference
-                    squaresAhead = kDisplayHeight - yDifference
+                    squaresBehind = math.abs(yDifference)
+                    squaresAhead = kDisplayHeight - math.abs(yDifference)
+                    -- squaresBehind = yDifference
+                    -- squaresAhead = kDisplayHeight - yDifference
                 end
 
                 -- left is +x, right is -x
@@ -692,7 +719,7 @@ function SnakeClass:grow ()
         end
 
         -- GROW
-        if self.length < SNAKE_MAX_LENGTH then
+        if self.length < self.maxLength then
             self.length = (self.length + 1)
             -- insert a segment right after head
             table.insert(self.body, 2, {x = snakex, y = snakey})
@@ -793,12 +820,8 @@ function key(n,z)
         if foodView == 0 then
             snakes[sel].behavior = libutil.wrap(snakes[sel].behavior + 1, 1, SNAKE_BEHAVIORS)
             params:set("behavior_"..sel, snakes[sel].behavior) -- update param menu
-            screen.move(108,20)
-            screen.font_size(15)
-            screen.level(15)
-            screen.text(snakes[sel].behavior)
-            screen.stroke()
-            screen.update()
+            popUpBehavior = 15 -- screen drawing timer (x * 1/15 seconds)
+
         else -- placing food, call same function as grid?
             g.key(foodCursorX, foodCursorY, z)
         end
@@ -821,12 +844,7 @@ function enc(n,d)
         end
         sel = libutil.clamp(sel, 1, SNAKE_MAX_COUNT)
         params:set("snake_select", sel) -- update param menu
-        screen.move(20,20)
-        screen.font_size(15)
-        screen.level(15)
-        screen.text(sel)
-        screen.stroke()
-        screen.update()
+        popUpSelect = 15 -- set popUp time (x * 1/15 seconds)
 
     -- speed, up/down, or player 2 snake turn
     elseif n==2 then
@@ -851,6 +869,7 @@ function enc(n,d)
                 end
                 snakes[sel].speed = libutil.clamp(temp, 1, SNAKE_MAX_SPEED)
                 params:set("speed_"..sel, snakes[sel].speed) -- update param menu
+                print(snakes[sel].speed)
             end
         else -- placing food
             if d < 0 then -- left
@@ -951,34 +970,6 @@ end
 
 -- local nornsDisplay = { width = 128, height = 64 }
 -- x is to the right, y is down from top left corner
-function redraw()
-    screen.clear()
-    for idy = 1, kDisplayHeight do
-        for idx = 1, kDisplayWidth do
-            screen.rect((idx-1)*8 + 1, (idy-1)*8 + 1, 4, 4) -- x, y, width, height
-            l = 1
-            if foodGrid[idy][idx] == 1 then
-                l = 6
-            end
-            for s = 1, SNAKE_MAX_COUNT do
-                for i = 1, #snakes[s].body do
-                    if snakes[s].body[i].x == idx and snakes[s].body[i].y == idy then
-                        l = 15
-                    end
-                end
-            end
-            screen.level(l)
-            screen.stroke()
-        end
-    end
-
-    if foodView == 1 then
-        screen.rect((foodCursorX-1)*8 + 2, (foodCursorY-1)*8 + 2, 2, 2)
-        screen.level(15)
-        screen.stroke()
-    end
-    screen.update()
-end
 
 function refreshGrid()
 
@@ -1009,86 +1000,226 @@ function refreshGrid()
         end
     end
     g:refresh()
-    redraw()
-end
-    
-function slitherToggle(snek)
-    -- slither on/off
-    if snakes[snek].slithering == 0 then
-        snakes[snek].slithering = 1
-        params:set("slithering_"..snek, 1) -- update param menu
-    else
-        snakes[snek].slithering = 0
-        params:set("slithering_"..snek, 0) -- update param menu
-    end
 end
 
--- typing keyboard support??? HOW DO I DO THIS??? table of functions?!??
-function keyboard.code(code,value)
-    if value == 1 then
-        if     code == "Q" then
-            enc(1,-1) -- left
-        elseif code == "E" then
-            enc(1,1) -- right
-        elseif code == "SPACE" then
-            key(2,1) -- toggle foodView
-        elseif code == "F" then
-            key(3,1) -- F for FOOD
-        elseif code == "A" then
-            enc(3,-1) -- left
-        elseif code == "D" then
-            enc(3,1) -- right
-        elseif code == "W" then
-            enc(2,1) -- right
-        elseif code == "S" then
-            enc(2,-1) -- left
-        elseif code == "R" then
-            local sel = params:get("snake_select")
-            if snakes[sel].immortal == 0 then
-                snakes[sel].immortal = 1
-                params:set("immortal_"..sel, 1) -- update param menu
-            else
-                snakes[sel].immortal = 0
-                params:set("immortal_"..sel, 0) -- update param menu
+function redraw()
+    screen.clear()
+    -- draw grid
+    for idy = 1, kDisplayHeight do
+        for idx = 1, kDisplayWidth do
+            screen.rect((idx-1)*8 + 1, (idy-1)*8 + 1, 4, 4) -- x, y, width, height
+            l = 1
+            if foodGrid[idy][idx] == 1 then
+                l = 6
             end
-        elseif code == "1" then
-            slitherToggle(1)
-        elseif code == "2" then
-            slitherToggle(2)
-        elseif code == "3" then
-            slitherToggle(3)
-        elseif code == "4" then
-            slitherToggle(4)
-        elseif code == "5" then
-            if params:get("foodSpawn") == 0 then
-                params:set("foodSpawn", 1)
-            else
-                params:set("foodSpawn", 0)
+            for s = 1, SNAKE_MAX_COUNT do
+                for i = 1, #snakes[s].body do
+                    if snakes[s].body[i].x == idx and snakes[s].body[i].y == idy then
+                        l = 15
+                    end
+                end
             end
-        elseif code == "6" then
-            if params:get("foodImmortal") == 0 then
-                params:set("foodImmortal", 1)
-            else
-                params:set("foodImmortal", 0)
-            end
-        elseif code == "7" then
-            if params:get("strictFoodOrder") == 0 then
-                params:set("strictFoodOrder", 1)
-            else
-                params:set("strictFoodOrder", 0)
-            end
-        elseif code == "Z" then
-            params:set("noteRowOffset", util.clamp(params:get("noteRowOffset") - 1, 1, 16))
-        elseif code == "X" then
-            params:set("noteRowOffset", util.clamp(params:get("noteRowOffset") + 1, 1, 16))
-        elseif code == "C" then
-            params:set("scaleGrid", util.clamp(params:get("scaleGrid") - 1, 1, 8))
-        elseif code == "V" then
-            params:set("scaleGrid", util.clamp(params:get("scaleGrid") + 1, 1, 8))
+            screen.level(l)
+            screen.stroke()
+        end
+    end
+
+    -- draw cursor
+    if foodView == 1 then
+        screen.rect((foodCursorX-1)*8 + 2, (foodCursorY-1)*8 + 2, 2, 2)
+        screen.level(15)
+        screen.stroke()
+    end
+
+    -- temporary popup text messages
+    if popUpSelect > 0 then
+        screen.move(20,20)
+        screen.font_size(15)
+        screen.level(15)
+        screen.text(params:get("snake_select"))
+        screen.stroke()
+        popUpSelect = popUpSelect - 1
+    end
+    if popUpBehavior > 0 then
+        screen.move(108,20)
+        screen.font_size(15)
+        screen.level(15)
+        screen.text(snakes[params:get("snake_select")].behavior)
+        screen.stroke()
+        screen.update()
+        popUpBehavior = popUpBehavior - 1
+    end
+    if popUpKeyboard > 0 then
+        screen.move(108,44)
+        screen.font_size(15)
+        screen.level(15)
+        screen.text(popUpKeyboardText)
+        screen.stroke()
+        screen.update()
+        popUpKeyboard = popUpKeyboard - 1
+    end
+        
+    screen.update()
+end
+
+function clearFoodGridAction()
+    for y = 1,kDisplayHeight do
+        for x = 1,kDisplayWidth do
+            foodGrid[y][x] = 0
+            foodOrder = {}
         end
     end
 end
 
+function setupKeyboardControls()
+    -- https://github.com/monome/norns/blob/main/lua/core/keymap/us.lua
+
+    keeb[BAD_CODE] = function() end -- do nothing
+
+    -- snakeView / foodView
+    keeb["SPACE"] = function() key(3,1) end -- place cycle behavior / place food
+    keeb["TAB"] = function() key(2,1) end -- toggle snakeView / foodView
+    keeb["W"] = function() -- SNAKE: speed up, FOOD: move up, or SHIFT: snake transpose up
+        if keyboard.shift() == true then
+            local sel = params:get("snake_select")
+            snakes[sel].transpose = util.clamp(snakes[sel].transpose + 1, 0, 128)
+            params:set("transpose_"..sel, snakes[sel].transpose)
+        else
+            enc(2,1)
+        end
+    end 
+    keeb["A"] = function() -- SNAKE: turn left, FOOD: move left, or SHIFT: snake maxLength down
+        if keyboard.shift() == true then
+            local sel = params:get("snake_select")
+            snakes[sel].maxLength = util.clamp(snakes[sel].maxLength - 1, 1, SNAKE_MAX_LENGTH)
+            params:set("maxLength_"..sel, snakes[sel].maxLength)
+        else  
+            enc(3,-1)
+        end
+    end
+    keeb["S"] = function() -- SNAKE: speed down, FOOD: move down, or SHIFT: snake transpose down
+        if keyboard.shift() == true then
+            local sel = params:get("snake_select")
+            snakes[sel].transpose = util.clamp(snakes[sel].transpose - 1, 0, 128)
+            params:set("transpose_"..sel, snakes[sel].transpose)
+        else
+            enc(2,-1)
+        end
+    end
+    keeb["D"] = function() -- SNAKE: turn right, FOOD: move right, or SHIFT: snake maxLength up
+        if keyboard.shift() == true then
+            local sel = params:get("snake_select")
+            snakes[sel].maxLength = util.clamp(snakes[sel].maxLength + 1, 1, SNAKE_MAX_LENGTH)
+            params:set("maxLength_"..sel, snakes[sel].maxLength)
+        else  
+            enc(3,1) 
+        end
+    end
+
+    -- selected snake controls
+    keeb["Q"] = function() -- toggle snake slithering
+        snek = params:get("snake_select")
+        if snakes[snek].slithering == 0 then
+            snakes[snek].slithering = 1
+            params:set("slithering_"..snek, 1)
+        else
+            snakes[snek].slithering = 0
+            params:set("slithering_"..snek, 0)
+        end
+    end
+    keeb["E"] = function() -- toggle snake immortality
+        local sel = params:get("snake_select")
+        if snakes[sel].immortal == 0 then
+            snakes[sel].immortal = 1
+            params:set("immortal_"..sel, 1)
+        else
+            snakes[sel].immortal = 0
+            params:set("immortal_"..sel, 0)
+        end
+    end
+    keeb["F"] = function() -- increase snake whimsy
+        local sel = params:get("snake_select")
+        snakes[sel].whimsy = util.clamp(snakes[sel].whimsy + 1, 0, 10)
+        params:set("transpose_"..sel, snakes[sel].whimsy)
+    end
+    keeb["G"] = function() -- decrease snake whimsy
+        local sel = params:get("snake_select")
+        snakes[sel].whimsy = util.clamp(snakes[sel].whimsy - 1, 0, 10)
+        params:set("transpose_"..sel, snakes[sel].whimsy)
+    end
+    keeb["R"] = function() -- toggle snake quantize
+        local sel = params:get("snake_select")
+        if snakes[sel].quantize == 0 then
+            snakes[sel].quantize = 1
+            params:set("quantize_"..sel, 1)
+        else
+            snakes[sel].quantize = 0
+            params:set("quantize_"..sel, 0)
+        end
+    end
+
+    -- select snake
+    keeb["1"] = function() 
+        params:set("snake_select", 1) 
+        popUpSelect = 15
+    end
+    keeb["2"] = function() 
+        params:set("snake_select", 2) 
+        popUpSelect = 15
+    end
+    keeb["3"] = function() 
+        params:set("snake_select", 3) 
+        popUpSelect = 15
+    end
+    keeb["4"] = function() 
+        params:set("snake_select", 4) 
+        popUpSelect = 15
+    end
+
+    -- global settings
+    keeb["Z"] = function() params:set("noteRowOffset", util.clamp(params:get("noteRowOffset") - 1, 1, 16)) end
+    keeb["X"] = function() params:set("noteRowOffset", util.clamp(params:get("noteRowOffset") + 1, 1, 16)) end
+    keeb["C"] = function() params:set("scaleGrid", util.clamp(params:get("scaleGrid") - 1, 1, 8)) end
+    keeb["V"] = function() params:set("scaleGrid", util.clamp(params:get("scaleGrid") + 1, 1, 8)) end
+    keeb["BACKSPACE"] = function() clearFoodGridAction() end
+    keeb["8"] = function()
+        if params:get("foodSpawn") == 0 then
+            params:set("foodSpawn", 1)
+        else
+            params:set("foodSpawn", 0)
+        end
+    end
+    keeb["9"] = function()
+        if params:get("foodImmortal") == 0 then
+            params:set("foodImmortal", 1)
+        else
+            params:set("foodImmortal", 0)
+        end
+    end
+    keeb["0"] = function()
+        if params:get("strictFoodOrder") == 0 then
+            params:set("strictFoodOrder", 1)
+        else
+            params:set("strictFoodOrder", 0)
+        end
+    end
+    keeb["/"] = function() -- put this away from the other controls lol
+        if params:get("twoPlayerMode") == 0 then
+            params:set("twoPlayerMode", 1)
+        else
+            params:set("twoPlayerMode", 0)
+        end
+    end
+end
+
+-- typing keyboard support
+function keyboard.code(code,value)
+    if value == 1 then
+        (keeb[code] or keeb[BAD_CODE])()
+        popUpKeyboard = 3 -- set popUpTimer
+        popUpKeyboardText = code
+    end
+end
 
 function setup_params()
     -- copying oilcan interface style for timbres
@@ -1128,7 +1259,7 @@ function setup_params()
                         snakes[j].body[1].x = 0
                         snakes[j].body[1].y = 0
                         snakes[j][snakeParamName] = val
-                        refreshGrid(j)
+                        refreshGrid()
                     end
                 end)
             else
@@ -1149,7 +1280,7 @@ function setup_params()
         params:add_control("freq" .. j, "osc " .. j .. " freq", controlspec.new(20, 10000, 'lin', 1, 120, 'hz'))
         params:set_action("freq" .. j, function(x) engine.freq(x, j) end)
         -- ENV
-        params:add_control("decay" .. j, "env " .. j .. " decay", controlspec.new(0.05, 1, 'lin', 0.01, 0.6, 'sec'))
+        params:add_control("decay" .. j, "env " .. j .. " decay", controlspec.new(0.05, 1, 'lin', 0.01, 0.3, 'sec'))
         params:set_action("decay" .. j, function(x) engine.decay(x, j) end)
         params:add_control("sweep" .. j, "env " .. j .. " sweep", controlspec.new(0, 2000, 'lin', 0.5, 0, ''))
         params:set_action("sweep" .. j, function(x) engine.sweep(x, j) end)
@@ -1213,14 +1344,7 @@ function setup_params()
     params:add_number("foodImmortal", "food immortal", 0, 1, 0)
     params:add_number("strictFoodOrder", "strict food order", 0, 1, 0)
     params:add_trigger("clearGrid", "clear food grid")
-    params:set_action("clearGrid", function()
-        for y = 1,kDisplayHeight do
-            for x = 1,kDisplayWidth do
-                foodGrid[y][x] = 0
-                foodOrder = {}
-            end
-        end
-    end)
+    params:set_action("clearGrid", clearFoodGridAction)
     params:add_number("twoPlayerMode", "two player mode", 0, 1, 0)
     params:add_number("noteRowOffset", "note row offset", 1, 16, 5)
     params:add_number("scaleGrid", "scale", 1, 8, 1)
@@ -1240,9 +1364,22 @@ function startGame (snek)
             snakes[snek]:slither() -- steps given a direction 
             snakes[snek]:killSnake() -- checks if snake should be dead
             snakes[snek]:grow() -- if died, new spot, check if should grow, otherwise check if should grow
-            refreshGrid(snek) -- refresh grid
             -- print("frame complete")
         end
+    end
+end
+
+function refreshGridTimer()
+    while true do
+        clock.sleep(1/20)
+        refreshGrid()
+    end
+end
+
+function refreshScreenTimer()
+    while true do
+        clock.sleep(1/15)
+        redraw()
     end
 end
 
@@ -1283,6 +1420,7 @@ function init()
                 trunRight = true,
                 behavior = 1,
                 immortal = 0,
+                maxLength = 10,
                 whimsy = 2,
                 transpose = 24,
                 quantize = 1
@@ -1302,18 +1440,22 @@ function init()
         snakes[i].body[1].y = 0
     end
 
-    -- initialize grid
-    refreshGrid()
-
     -- random starting food
     idx = math.random(1,kDisplayWidth)
     idy = math.random(1,kDisplayHeight)
     foodGrid[idy][idx] = 1
     table.insert(foodOrder, {x = idx, y = idy})
 
+    -- draw grid and screen
+    refreshGrid()
+    redraw()
+    setupKeyboardControls()
+
     -- start slithering
     clock.run(startGame, 1)
     clock.run(startGame, 2)
     clock.run(startGame, 3)
     clock.run(startGame, 4)
+    clock.run(refreshGridTimer)
+    clock.run(refreshScreenTimer)
 end
