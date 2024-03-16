@@ -48,124 +48,6 @@
 -- 1 2 2 2 2 2 2 2 2 2 3 3 3 1 1 1
 
 
---[[
-1   select snake 1
-2   select snake 2
-3   select snake 3
-4   select snake 4
-TAB   toggle foodView ON/OFF
-
-selected snake controls:
-W   increase speed
-A   turn left
-S   decrease speed
-D   turn right
-SPACE   cycle snake behaviors
-Q   toggle slithering (TURN ON THE SNAKE)
-E   toggle immortality
-R   toggle quantize
-F   decrease whimsy
-G   increase whimsy
-SHIFT + W   increase transpose
-SHIFT + A   decrease max length
-SHIFT + S   decrease transpose
-SHIFT + D   increase max length
-
-foodView controls:
-W   move up
-A   move left
-S   move down
-D   move right
-SPACE   place food
-cursor spawns inside the top left square initially
-other snake controls remain the same in foodView
-
-global controls:
-8   toggle food spawn
-9   toggle food immortality
-0   toggle strict food order
-BACKSPACE   clear food grid
-Z   decrement noteRowOffset (-1)
-X   increment noteRowOffset (+1)
-C   decrement scale (-1)
-V   increment scale (+1)
-/   toggle two player mode
-
-
-SNAKE SETTINGS
-nb snake 1-4: select the nb voice for the snake
-selected snake: selects snake 1, 2, 3, or 4
-slithering: 0 removes snake, 1 spawns snake
-behavior: defines the movement of the snake (see more details below)
-speed: 1-70, syncs to norns clock tempo
-immortal: 0 can be killed, 1 all hail immortal snek
-whimsy: 0-10, 0-100% chance to flip a coin to turn left or right
-transpose: midi note offset for nb voices
-quantize: 0/1, controls if note is quantized to scale of the grid
-
-FOOD SETTINGS
-food spawn: 0/1, spawns new food if food is eaten
-food immortal: 0/1, deletes/keeps food if food is eaten
-strict food order:
-    0: append any eaten food to the end of foodOrder
-    1: append only destination food to the end of foodOrder
-clear food grid: (TRIGGER) clear all food and foodOrder
-two player mode: changes ENC2 to turn the next snake
-    if snake 1 is selected, it turns next snake, snake 2
-note row offset: transpose offset per row of the grid
-    if this is 5, then if a pad is note 3, the next pad down is 3+5
-scale: 1-8
-    "Ionian", "Dorian", "Phrygian", "Lydian", "Mixolydian", "Aeolian", "Locrian"
-
-SNAKE BEHAVIORS
-This controls what direction the snake steps to each update loop.
-For each behavior, you can always turn the snake with ENC3.
-Note that upon dying and spawning, snakes preserve their direction. 
-
-1 none, snake moves forward, turn with ENC3
-    Good to actually play the game snake with
-    Good for having a snake wrap the grid in a straight predictable line
-    Repeating melodies, drums, etc. 
-
-2 random, snake turns randomly, whimsy controls randomness
-    whimsy at 0 means it always steps forward
-    whimsy at 3 means each step there's a 30% chance to flip a coin (turn left, turn right)
-    whimsy at 10 means each step it flips a coin to turn left or turn right
-    high speed & whimsy is really fun to watch!
-
-3 wander, snake turns towards the food closest to it that it can "see"
-    Each square, the snake looks left, forward, and right in a straight line
-    If it sees food in its sight line, it turns in the direction of closest food
-    Slightly unpredictable in a complex environment of many snakes and foods.
-    Results in emergent stabilizing paths and loops with immortal food.
-    Pseudorandom pathing with foodSpawn on. 
-    
-4 sequence, snake seeks out food in order (see below)
-    When you place a food, it tracks the order of foods placed.
-    For example, placing down 3 foods will give an order 1, 2, 3.
-    The snake will go to food 1 first, eat it, then go to 2.
-    Use the options "food immortal", "food spawn", "strict food order" to get different slithering paths. 
-
-    If food 2 is eaten on the way to food 1, it is removed from the order, 1, 3.
-    If "food immortal" is ON, then any food eaten is not deleted and moved to the end of the food sequence. 
-    If food 2 is eaten on the way to food 1, it is removed from the order, and moved to the end 1, 3, 2.
-    If "strict food order" is ON, only the head of food sequence (food 1 in this case) is moved to the end if eaten.
-
-    There is only one food sequence shared among the 4 snakes. 
-    If snake 1 gets to the food before snake 2 does, then they'll both turn towards the next food in the sequence.
-    All snake behaviors affect food sequence, so sometimes repeating sequences can get broken up with high whimy snaking.
-
-    This is a pretty wiggling style.
-    I had a vision of placing my hand on the grid and watching a snake slither around my fingertips.
-    This was the attempt to realize that daydream.
-    Try placing immortal foods one at a time and build up a melody.
-    Placing one immortal food results in the snake to spiral around the food in a 3x3 clover pattern.
-    Placing two foods will get the snake to loop back and forth.
-    Placing a few foods nearby might make a repeating melody.
-    And so on.
-    
---]]
-
 -- get libraries ----------------------------------------
 engine.name = "RudimentsSnek"
 libutil = require 'util'
@@ -188,11 +70,6 @@ SNAKE_MIN_SPEED = 1 -- currently integer speed so this is min, could rewrite to 
 SNAKE_BEHAVIORS = 4
 initBody = {}
 initBody[1] = {x = 1, y = 1}
--- for i = 1,SNAKE_MAX_LENGTH do
---     initBody[i] = {x = 0, y = 0}
--- end
--- initBody[1].x = 1
--- initBody[1].y = 1
 foodGrid = {}
 foodOrder = {}
 snakes = {}
@@ -271,12 +148,33 @@ snake_specs = {
         max = 1,
         default = 1
     },
+    {
+        id = 'spawnX',
+        name = 'spawnX',
+        min = 1,
+        max = 16,
+        default = 1
+    },    
+    {
+        id = 'spawnY',
+        name = 'spawnY',
+        min = 1,
+        max = 8,
+        default = 1
+    },
+    {
+        id = 'randomSpawn',
+        name = 'randomSpawn',
+        min = 0,
+        max = 1,
+        default = 1
+    }
 }
 
 -- SNAKE CLASS ------------------------------------------
 SnakeClass = {}
 
-function SnakeClass:new (properties)
+function SnakeClass:new(properties)
     local obj = properties or {}
     setmetatable(obj, self) -- creates a metatable of self
     self.__index = self -- inheret from self using metamethod __index
@@ -796,8 +694,13 @@ function SnakeClass:die()
     -- for i = 1,SNAKE_MAX_LENGTH do
     --     self.body[i] = {x = 0, y = 0}
     -- end
-    self.body[1].x = math.random(1,kDisplayWidth)
-    self.body[1].y = math.random(1,kDisplayHeight)
+    if self.randomSpawn == 1 then
+        self.body[1].x = math.random(1,kDisplayWidth)
+        self.body[1].y = math.random(1,kDisplayHeight)
+    else
+        self.body[1].x = self.spawnX
+        self.body[1].y = self.spawnY
+    end
     -- print("snake died :(")
 end
 
@@ -1157,6 +1060,39 @@ function setupKeyboardControls()
             params:set("quantize_"..sel, 0)
         end
     end
+    keeb["U"] = function() -- toggle snake randomSpawn
+        local sel = params:get("snake_select")
+        if snakes[sel].randomSpawn == 0 then
+            snakes[sel].randomSpawn = 1
+            params:set("randomSpawn_"..sel, 1)
+        else
+            snakes[sel].randomSpawn = 0
+            params:set("randomSpawn_"..sel, 0)
+        end
+    end
+
+    -- set spawn position
+    -- IJKL analogous to WASD, up, left, down, right 
+    keeb["I"] = function() -- "decrease" spawnY (but it "moves up")
+        local sel = params:get("snake_select")
+        snakes[sel].spawnY = util.wrap(snakes[sel].spawnY - 1, 1, kDisplayHeight)
+        params:set("spawnY_"..sel, snakes[sel].spawnY)
+    end
+    keeb["J"] = function() -- decrease spawnX (moves left)
+        local sel = params:get("snake_select")
+        snakes[sel].spawnX = util.wrap(snakes[sel].spawnX - 1, 1, kDisplayWidth)
+        params:set("spawnX_"..sel, snakes[sel].spawnX)
+    end
+    keeb["K"] = function() -- increase spawnY (moves down)
+        local sel = params:get("snake_select")
+        snakes[sel].spawnY = util.wrap(snakes[sel].spawnY + 1, 1, kDisplayHeight)
+        params:set("spawnY_"..sel, snakes[sel].spawnY)
+    end
+    keeb["L"] = function() -- increase spawnX (moves right)
+        local sel = params:get("snake_select")
+        snakes[sel].spawnX = util.wrap(snakes[sel].spawnX + 1, 1, kDisplayWidth)
+        params:set("spawnX_"..sel, snakes[sel].spawnX)
+    end
 
     -- select snake
     keeb["1"] = function() 
@@ -1251,8 +1187,13 @@ function setup_params()
                 -- action for "slithering"
                 params:set_action(snakeParamID, function(val)
                     if val == 1 then
-                        snakes[j].body[1].x = math.random(1,kDisplayWidth)
-                        snakes[j].body[1].y = math.random(1,kDisplayHeight)
+                        if snakes[j].randomSpawn == 1 then
+                            snakes[j].body[1].x = math.random(1,kDisplayWidth)
+                            snakes[j].body[1].y = math.random(1,kDisplayHeight)
+                        else                            
+                            snakes[j].body[1].x = snakes[j].spawnX
+                            snakes[j].body[1].y = snakes[j].spawnY
+                        end
                         snakes[j][snakeParamName] = val
                     else -- val == 0
                         snakes[j]:die()
@@ -1347,7 +1288,7 @@ function setup_params()
     params:set_action("clearGrid", clearFoodGridAction)
     params:add_number("twoPlayerMode", "two player mode", 0, 1, 0)
     params:add_number("noteRowOffset", "note row offset", 1, 16, 5)
-    params:add_number("scaleGrid", "scale", 1, 8, 1)
+    params:add_number("scaleGrid", "scale", 1, 7, 1)
     params:set_action("scaleGrid", function(val)
         noteArray = mutil.generate_scale(0, scaleNames[val], 10)
     end)
@@ -1355,7 +1296,7 @@ end
   
 -- TO DO OPTIMIZATIONS??
 -- me from the future: never optimize, it didn't help
-function startGame (snek)
+function startGame(snek)
     while true do
         clock.sync(1/snakes[snek].speed)
         if snakes[snek].slithering == 1 then
@@ -1423,7 +1364,10 @@ function init()
                 maxLength = 10,
                 whimsy = 2,
                 transpose = 24,
-                quantize = 1
+                quantize = 1,
+                spawnX = i,
+                spawnY = i,
+                randomSpawn = 1
             }
         )
     end
@@ -1438,6 +1382,10 @@ function init()
         snakes[i]:die()
         snakes[i].body[1].x = 0
         snakes[i].body[1].y = 0
+        snakes[i].spawnX = i
+        snakes[i].spawnY = i
+        params:set("spawnX_"..i, i)
+        params:set("spawnY_"..i, i)
     end
 
     -- random starting food
