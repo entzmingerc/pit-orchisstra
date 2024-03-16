@@ -19,7 +19,7 @@ K3: cycle snake behaviors
 __food view__:  
 E2: < down, > up  
 E3: < left, > right  
-K3: place food  
+K3: place/destroy food  
 if two player mode is on  
 E2 turns next snake (+1)  
 
@@ -28,6 +28,9 @@ __slithering behaviors__:
 2 random: random snake turn (whimsy)  
 3 wander: turn towards closest food  
 4 sequence: seek food in order placed  
+
+# GRID CONTROLS  
+poke the grid to place/destroy food!  
 
 # KEYBOARD CONTROLS  
 __select snake, select view__:
@@ -77,17 +80,26 @@ V   increment scale (+1)
 | Parameter | Description |
 | --- | --- |
 | nb snake 1-4 | select the nb voice for the snake |
-| selected snake | selects snake 1, 2, 3, or 4 |
+| Internal ON/OFF | turn ON/OFF the internal synth engine |
+| selected snake | selects snake 1, 2, 3, or 4 <br> only shows parameters of the selected snake |
 | slithering | 0 removes snake, 1 spawns snake |
 | behavior | defines the movement of the snake (see more details below) |
-| speed | 1-20, syncs to norns clock tempo |
+| speed | 1-70, syncs to norns clock tempo |
 | immortal | 0 can be killed, 1 all hail immortal snek |
+| max length | 1 - 128, default 10 |
 | whimsy | 0-10, 0-100% chance to flip a coin to turn left or right |
 | transpose | midi note offset for nb voices |
 | quantize | 0/1, controls if note is quantized to scale of the grid |
+| [rudiments](https://github.com/cfdrake/rudiments) | [rudiments](https://github.com/cfdrake/rudiments) |
+| osc shape | 0 sine, 1 square|
+| osc freq | ...this isn't used <br> the pitch is controlled by snake transpose, note row offset, and scale |
+| env decay | 0.05 - 1 sec, both pitch and amplitude envelope decay time |
+| env sweep | 0 - 2000, envelope modulation depth |
+| lfo freq | 1 - 10000 Hz, lfo frequency |
+| lfo shape | 0 sine, 1 square |
+| lfo sweep | 0 - 2000, lfo modulation depth |
 
-check out rudiments for the synth parameter descriptions:  
-https://github.com/cfdrake/rudiments  
+we're using [rudiments](https://github.com/cfdrake/rudiments) for internal synth engine  
 
 # FOOD PARAMETERS  
 | Parameter | Description |
@@ -101,33 +113,37 @@ https://github.com/cfdrake/rudiments
 | scale | 1 Ionian, 2 Dorian, 3 Phrygian, 4 Lydian, 5 Mixolydian, 6 Aeolian, 7 Locrian |
 
 # SNAKE BEHAVIORS  
-This controls what direction the snake steps to each update loop.  
+This controls how the snake behaves.  
 For each behavior, you can always turn the snake with ENC3.  
-Note that upon dying and spawning, snakes preserve their direction.  
+Snakes preserve their direction and behavior upon death.  
 
-1 none, snake moves forward, turn with ENC3  
-    Good to actually play the game snake with  
-    Good for having a snake wrap the grid in a straight predictable line  
-    Repeating melodies, drums, etc.  
+### 1 None!
+Snake moves forward, turn with ENC3!  
+Useful for actually playing the game Snake with!  
+Useful for predictable, repeating patterns.  
 
-2 random, snake turns randomly, whimsy controls randomness  
-    whimsy at 0 means it always steps forward  
-    whimsy at 3 means each step there's a 30% chance to flip a coin (turn left, turn right)  
-    whimsy at 10 means each step it flips a coin to turn left or turn right  
-    high speed & whimsy is really fun to watch!  
+### 2 Whimsical  
+Snake turns randomly!  
+Whimsy controls the percentage chance to flip a coin to turn left or turn right.   
+Whimsy at 0 (0%) means it always steps forward  
+Whimsy at 3 (30%) means each step there's a 30% chance to flip a coin (turn left, turn right)  
+Whimsy at 10 (100%) means each step it flips a coin to turn left or turn right  
+Turn up speed & whimsy and watch them wiggle!  
 
-3 wander, snake turns towards the food closest to it that it can "see"  
-    Each square, the snake looks left, forward, and right in a straight line  
-    If it sees food in its sight line, it turns in the direction of closest food  
-    Slightly unpredictable in a complex environment of many snakes and foods.  
-    Results in emergent stabilizing paths and loops with immortal food.  
-    Pseudorandom pathing with foodSpawn on.  
+### 3 Wander  
+Snake turns towards the food closest to it that it can "see".  
+Each square, the snake looks left, forward, and right in a straight line. This sight wraps through the boundaries of the grid.  
+If it sees food in its sight line, it turns in the direction of closest food  
+Slightly unpredictable in a complex environment of many snakes and foods.  
+Results in emergent stabilizing paths and loops with immortal food.  
+Pseudorandom pathing with foodSpawn on.  
     
-4 sequence, snake seeks out food in order (see below)  
-    When you place a food, it tracks the order of foods placed.  
-    For example, placing down 3 foods will give an order 1, 2, 3.  
-    The snake will go to food 1 first, eat it, then go to 2.  
-    Use the options "food immortal", "food spawn", "strict food order" to get different slithering paths.  
+### 4 Sequence  
+Snake seeks out food in order. This is the "smartest" snake mode.  
+When you place a food, it tracks the order of foods placed.  
+For example, placing down 3 foods will give an order 1, 2, 3.  
+The snake will go to food 1 first, eat it, then go to 2.  
+Use the options "food immortal", "food spawn", "strict food order" to get different slithering paths.  
 
 If food 2 is eaten on the way to food 1, it is removed from the order, 1, 3.  
 If "food immortal" is ON, then any food eaten is not deleted and moved to the end of the food sequence.  
