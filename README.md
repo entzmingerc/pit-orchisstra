@@ -55,6 +55,11 @@ SHIFT + W   increase snake transpose
 SHIFT + A   decrease max length (kill snake to decrease length)  
 SHIFT + S   decrease snake transpose  
 SHIFT + D   increase max length  
+U    toggle randomSpawn
+I    decrease spawnY (move up)
+J    decrease spawnX (move left)
+K    increase spawnY (move down)
+L    increase spawnX (move right)
 
 __food view__:  
 W   move up  
@@ -90,6 +95,9 @@ V   increment scale (+1)
 | whimsy | 0-10, 0-100% chance to flip a coin to turn left or right |
 | transpose | midi note offset for nb voices |
 | quantize | 0/1, controls if note is quantized to scale of the grid |
+| spawnX | respawn x-coordinate |
+| spawnY | respawn y-coordinate |
+| randomSpawn | 0 uses respawn coordinates <br> 1 (default) respawns the snake in a random location |
 | [rudiments](https://github.com/cfdrake/rudiments) | [rudiments](https://github.com/cfdrake/rudiments) |
 | osc shape | 0 sine, 1 square|
 | osc freq | ...this isn't used <br> the pitch is controlled by snake transpose, note row offset, and scale |
