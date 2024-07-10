@@ -59,14 +59,14 @@ g = grid.connect()
 -- CONSTANTS --------------------------------------------
 kDisplayWidth = 16 -- synthstrom deluge variable name
 kDisplayHeight = 8 -- synthstrom deluge variable name
-SNAKE_MAX_LENGTH = 128 -- I guess if the snake is 16 * 8 = 128 it'd fill the screen???
-SNAKE_MIN_LENGTH = 1 -- can't get smaller than 1 pad, right?
+SNAKE_MAX_LENGTH = 128
+SNAKE_MIN_LENGTH = 1
 SNAKE_UP = 1
 SNAKE_RIGHT = 2
 SNAKE_DOWN = 3
 SNAKE_LEFT = 4
 SNAKE_MAX_SPEED = 70 -- dimishing aesthetic differences above 70, but could go higher :)
-SNAKE_MIN_SPEED = 1 -- currently integer speed so this is min, could rewrite to allow decimals?
+SNAKE_MIN_SPEED = 1 -- currently integer speed so 1 is the minimum
 SNAKE_BEHAVIORS = 4
 initBody = {}
 initBody[1] = {x = 1, y = 1}
@@ -89,8 +89,6 @@ BAD_CODE = "CAW!"
 
 -- SNAKE PARAMS -----------------------------------------
 -- settings for each snake
--- slithering determines if it can walk
--- behavior (none, randomTurn, wander, foodSequence)
 snake_specs = {
     {
         id = 'slithering',
@@ -176,15 +174,16 @@ SnakeClass = {}
 
 function SnakeClass:new(properties)
     local obj = properties or {}
-    setmetatable(obj, self) -- creates a metatable of self
-    self.__index = self -- inheret from self using metamethod __index
-    return obj -- returns new SnakeClass object
+    setmetatable(obj, self)
+    self.__index = self
+    return obj
 end
 
 function SnakeClass:checkBehavior ()
-    -- if self.behavior == 1 then nothing
+    -- self.behavior == 1 should do nothing
     -- self.turnRight and self.turnLeft are both false
 
+    -- whimsy: randomly decide to flip a coin to go left or right
     if self.behavior == 2 then
         randomTurn = math.random()
         if randomTurn < (self.whimsy * 0.1) then
@@ -196,17 +195,17 @@ function SnakeClass:checkBehavior ()
             end
         end
         
-    -- search
+    -- wander
     elseif self.behavior == 3 then
-        -- look left, forward, right, if food calculate distance to it
-        -- priority center, left, right if distance is equal
-        -- if food, turn toward food 
+        --[[ 
+        Look left, forward, right, if there's food then calculate distance to it
+        Priority: center, left, then right if distance is equal 
+        Sight wraps around the grid so we can see food "behind" us
+        ]]
 
         -- get head coordinates
         local headx = self.body[1].x
         local heady = self.body[1].y
-
-        -- sight wraps around the grid so we can see food "behind" us
 
         -- check up
         local upDistance = 100 -- arbitrarily large number to be distinct
@@ -232,7 +231,7 @@ function SnakeClass:checkBehavior ()
         end
 
         -- check right
-        local rightDistance = 100 -- arbitrarily large number
+        local rightDistance = 100
         for i = 1, (kDisplayWidth - 1) do
             -- going right, so add i to headx
             if (headx + i) <= kDisplayWidth then
@@ -243,7 +242,6 @@ function SnakeClass:checkBehavior ()
                 end
             else
                 -- wrap right boundary of grid
-                -- i = 5 should be like newX = 3 if headx = 14
                 newX = i - (kDisplayWidth - headx)
                 if foodGrid[heady][newX] == 1 then
                     rightDistance = i
@@ -253,7 +251,7 @@ function SnakeClass:checkBehavior ()
         end
 
         -- check down
-        local downDistance = 100 -- arbitrarily large number
+        local downDistance = 100
         for i = 1, (kDisplayHeight - 1) do
             -- going down, so subtract i from heady
             if (heady + i) <= kDisplayHeight then
@@ -274,7 +272,7 @@ function SnakeClass:checkBehavior ()
         end
           
         -- check left
-        local leftDistance = 100 -- arbitrarily large number
+        local leftDistance = 100
         for i = 1, (kDisplayWidth - 1) do
             -- going left, so subtract i from head
             if (headx - i) >= 1 then
@@ -285,7 +283,6 @@ function SnakeClass:checkBehavior ()
                 end
             else
                 -- wrap lefthand boundary of grid
-                -- i = 7 should be like newX = 12 if headx = 3
                 newX = kDisplayWidth - (i - headx)
                 if foodGrid[heady][newX] == 1 then
                     leftDistance = i
@@ -297,7 +294,6 @@ function SnakeClass:checkBehavior ()
         -- calculated distances! which direction? depends on current direction
         -- 3 distance ties = no turning
         -- prioritize moving forward, then turning left, then turning right
-        -- what are vectors?!
         local minDist = 100
         if self.direction == SNAKE_UP then
             minDist = math.min(leftDistance, upDistance, rightDistance)
@@ -340,34 +336,29 @@ function SnakeClass:checkBehavior ()
             end
 
         else
-            print("HOW DID YOU GET HERE? 3")
+            print("Error determining direction in wander behavior")
         end
 
     
-    -- sequence
+    -- sequence: chronilogically travel between foods
+        --[[ 
+        Prioritize minimizing whichever distance is greater, x or y
+        If (H)ead direction is going ^up^ there are 3 outcomes to decide between.
+        Next food to move towards is at any of the locations, not H. 
+        1 1 2 2 2 2 2 2 2 3 3 3 3 1 1 1
+        1 1 1 2 2 2 2 2 3 3 3 3 3 1 1 1
+        1 1 1 1 2 2 2 3 3 3 3 3 3 1 1 1
+        1 1 1 1 1 H 3 3 3 3 3 3 3 1 1 1
+        1 1 1 1 1 1 3 3 3 3 3 3 3 1 1 1
+        1 1 1 1 1 1 3 3 3 3 3 3 3 1 1 1
+        1 1 1 1 1 1 3 3 3 3 3 3 3 1 1 1
+        1 2 2 2 2 2 2 2 2 2 3 3 3 1 1 1
+        Calculate the relative directional distances based on each current direction.
+        Each distance absolute value can each be 0 - 16. 
+        Decide to turn based on where the food is relative to current direction.
+        ]]
     elseif self.behavior == 4 and foodOrder[1] ~= nil then
-
-        -- BUG: for some reason foodGrid can be 0 while foodOrder thinks there should be a food there, not sure, food spawning incorrectly?
-        -- not a "fix": just remove it from foodOrder if this happens?
         if foodGrid[foodOrder[1].y][foodOrder[1].x] ~= 0 then
-            -- whichever is the greater x or y distance, prioritize minimizing that
-            -- if we're on a grid, we can turn left, straight, right
-            -- if (H)ead direction is ^up^ there are 4 decisions
-            -- next food to go for is at any of the locations, not H
-            -- 1 1 2 2 2 2 2 2 2 3 3 3 3 1 1 1
-            -- 1 1 1 2 2 2 2 2 3 3 3 3 3 1 1 1
-            -- 1 1 1 1 2 2 2 3 3 3 3 3 3 1 1 1
-            -- 1 1 1 1 1 H 3 3 3 3 3 3 3 1 1 1
-            -- 1 1 1 1 1 1 3 3 3 3 3 3 3 1 1 1
-            -- 1 1 1 1 1 1 3 3 3 3 3 3 3 1 1 1
-            -- 1 1 1 1 1 1 3 3 3 3 3 3 3 1 1 1
-            -- 1 2 2 2 2 2 2 2 2 2 3 3 3 1 1 1
-            -- okay forward or "ahead" is the current direction
-            -- calculate the relative directional distances based on each current direction 
-            -- each distance absolute value, can each be 0 - 16
-            -- then "turn" depending on where the food is relative to direction
-
-
             local foodx = foodOrder[1].x
             local foody = foodOrder[1].y
             headx = self.body[1].x
@@ -477,19 +468,16 @@ function SnakeClass:checkBehavior ()
                 end
     
             else
-                print("HOW DID YOU GET HERE? 4")
+                print("error calculating direction in sequence behavior")
             end
 
-            -- each direction has same logic
-            -- we can only decide which direction to turn
-            -- if you set both to squaresAhead > squaresLeft in the 3rd if statement it zigzags
-            -- but if you use squaresAhead >= squaresLeft it zigzags by 2 squares
-                -- and makes a beautiful little clover pattern circling one food 
-            -- do we turn left?
+            -- Decide which direction to turn
+            -- If you set both to squaresAhead > squaresLeft in the 3rd if statement the snake zigzags
+            -- If you use squaresAhead >= squaresLeft, the snake zigzags with a wider 2 square width
+                -- and makes a beautiful little clover pattern when circling one food
             if squaresLeft <= squaresRight then
                 if squaresAhead <= squaresBehind then
                     if squaresAhead >= squaresLeft then 
-                        -- (if this is > it zigs harder, but >= does a pretty spiral with 1 food)
                         -- nothing, stay current direction
                     else
                         self.turnLeft = true
@@ -498,8 +486,7 @@ function SnakeClass:checkBehavior ()
                     self.turnLeft = true
                 end
                 
-            -- do we turn right?
-            -- squaresRight < squaresLeft
+            -- turn right? squaresRight < squaresLeft
             else
                 if squaresAhead <= squaresBehind then
                     if squaresAhead >= squaresRight then
@@ -512,7 +499,6 @@ function SnakeClass:checkBehavior ()
                 end
             end
         else
-            -- foodGrid == 0, but foodOrder thinks there's food
             table.remove(foodOrder, 1) -- get rid of foodOrder head
         end
     end
@@ -574,13 +560,12 @@ function SnakeClass:slither()
         end
     else
         self.direction = SNAKE_UP
-        print("slither NOWHERE")
+        print("Error calculating direction in class, slither nowhere")
     end
 end
 
 -- check if head location is at food, eat food
 function SnakeClass:grow()
-    -- get head coordinates
     local snakex = self.body[1].x
     local snakey = self.body[1].y
 
@@ -598,15 +583,18 @@ function SnakeClass:grow()
                     break
                 end
             end
-        else -- food is immortal on (don't set foodGrid to 0)
+
+        -- food is immortal on (don't set foodGrid to 0)
+        else 
             entry = {}
             if params:get("strictFoodOrder") == 1 then -- only remove and append if it's the head of foodOrder
                 if foodOrder[1].x == snakex and foodOrder[1].y == snakey then
                     entry = table.remove(foodOrder, 1) -- remove the head of the queue
                     table.insert(foodOrder, entry) -- append it to the end
                 end
-
-            else -- remove and append any food we eat to end of foodOrder
+            
+            -- remove and append any food we eat to end of foodOrder
+            else
                 for i, v in ipairs(foodOrder) do
                     if v.x == snakex and v.y == snakey then
                         entry = table.remove(foodOrder, i) -- remove food at i
@@ -624,7 +612,7 @@ function SnakeClass:grow()
         end 
 
         -- SING
-        local player = 0 -- get the player, probably should be part of SnakeClass
+        local player = 0
         if     self.snakeID == 1 then
             player = params:lookup_param("nb_1"):get_player()
         elseif self.snakeID == 2 then
@@ -641,8 +629,9 @@ function SnakeClass:grow()
         end
 
         if params:get("Internal_ON_OFF") == 1 then
-            engine.freq(mutil.note_num_to_freq(snakeNote), self.snakeID) -- current freq to midi, add offset, midi to freq, set engine freq
-            engine.trigger(self.snakeID) -- triggers internal rudiments SC engine
+            -- current freq to midi, add offset, midi to freq, set engine freq
+            engine.freq(mutil.note_num_to_freq(snakeNote), self.snakeID) 
+            engine.trigger(self.snakeID)
         end
         player:note_on(snakeNote, 1)
         
@@ -656,11 +645,6 @@ function SnakeClass:grow()
                     if foodGrid[idy][idx] == 0 then
                         -- check if snake is here
                         for i = 1,self.length do
-                            -- if body segment coordinates not equal to index then
-                            -- doesn't check all snakes, it could but I want to fill the grid
-                            -- more than I want to not accidentally spawn a food on a square already
-                            -- occupied by another snake, it's good enough to spawn on any square that the
-                            -- snake that just ate isn't currently occupying
                             if not (self.body[i].x == idx and self.body[i].y == idy) then
                                 -- unoccupied!
                                 numNotOccupied = numNotOccupied + 1
@@ -671,16 +655,12 @@ function SnakeClass:grow()
                 end
             end
 
-            -- choose random spot from notOccupied list
             if numNotOccupied ~= 0 then
-                -- put a food at a random unoccupied location
                 randnum = math.random(1, numNotOccupied)
                 idx = notOccupied[randnum].x
                 idy = notOccupied[randnum].y
                 foodGrid[idy][idx] = 1
                 table.insert(foodOrder, {x = idx, y = idy})
-            -- else
-            --     print("grid full?")
             end
         end
     end
@@ -691,9 +671,6 @@ function SnakeClass:die()
     self.length = SNAKE_MIN_LENGTH
     self.body = {}
     self.body[1] = {x = 0, y = 0}
-    -- for i = 1,SNAKE_MAX_LENGTH do
-    --     self.body[i] = {x = 0, y = 0}
-    -- end
     if self.randomSpawn == 1 then
         self.body[1].x = math.random(1,kDisplayWidth)
         self.body[1].y = math.random(1,kDisplayHeight)
@@ -701,7 +678,6 @@ function SnakeClass:die()
         self.body[1].x = self.spawnX
         self.body[1].y = self.spawnY
     end
-    -- print("snake died :(")
 end
 
 -- </SNAKE CLASS> ---------------------------------------
@@ -712,7 +688,8 @@ end
 function key(n,z) 
     local sel = params:get("snake_select")
 
-    if n==2 and z==1 then -- toggle food place mode
+    -- toggle food place mode
+    if n==2 and z==1 then
         if foodView == 1 then
             foodView = 0
         else
@@ -723,10 +700,11 @@ function key(n,z)
     elseif n==3 and z==1 then
         if foodView == 0 then
             snakes[sel].behavior = libutil.wrap(snakes[sel].behavior + 1, 1, SNAKE_BEHAVIORS)
-            params:set("behavior_"..sel, snakes[sel].behavior) -- update param menu
+            params:set("behavior_"..sel, snakes[sel].behavior)
             popUpBehavior = 15 -- screen drawing timer (x * 1/15 seconds)
 
-        else -- placing food, call same function as grid?
+        -- placing food
+        else 
             g.key(foodCursorX, foodCursorY, z)
         end
     end
@@ -737,17 +715,17 @@ end
 -- E3 turn snake clockwise/counterclock
 -- turn encoder (number, direction/step)
 function enc(n,d)
-    local sel = params:get("snake_select") -- get selection
+    local sel = params:get("snake_select")
 
     -- snake_select
     if n==1 then
-        if d < 0 then -- left
+        if d < 0 then
             sel = sel - 1
-        elseif d > 0 then -- right
+        elseif d > 0 then
             sel = sel + 1
         end
         sel = libutil.clamp(sel, 1, SNAKE_MAX_COUNT)
-        params:set("snake_select", sel) -- update param menu
+        params:set("snake_select", sel)
         popUpSelect = 15 -- set popUp time (x * 1/15 seconds)
 
     -- speed, up/down, or player 2 snake turn
@@ -756,28 +734,30 @@ function enc(n,d)
             -- turn player 2 snake
             if params:get("twoPlayerMode") == 1 then
                 local p2 = libutil.wrap(sel + 1, 1, SNAKE_MAX_COUNT)
-                if d < 0 then -- left
+                if d < 0 then
                     snakes[p2].turnLeft = true
                     snakes[p2].turnRight = false
-                elseif d > 0 then -- right
+                elseif d > 0 then
                     snakes[p2].turnLeft = false
                     snakes[p2].turnRight = true
                 end
 
             -- set snake speed
             else
-                if d < 0 then -- left
+                if d < 0 then
                     temp = snakes[sel].speed - 1
-                elseif d > 0 then -- right
+                elseif d > 0 then
                     temp = snakes[sel].speed + 1
                 end
                 snakes[sel].speed = libutil.clamp(temp, 1, SNAKE_MAX_SPEED)
-                params:set("speed_"..sel, snakes[sel].speed) -- update param menu
+                params:set("speed_"..sel, snakes[sel].speed)
             end
-        else -- placing food
-            if d < 0 then -- left
+
+        -- placing food
+        else 
+            if d < 0 then
                 foodCursorY = libutil.wrap(foodCursorY + 1, 1, kDisplayHeight)
-            elseif d > 0 then -- right
+            elseif d > 0 then
                 foodCursorY = libutil.wrap(foodCursorY - 1, 1, kDisplayHeight)
             end
             screen.rect((foodCursorX-1)*8 + 2, (foodCursorY-1)*8 + 2, 2, 2)
@@ -791,17 +771,19 @@ function enc(n,d)
     -- turn selected snake, left/right
     elseif n==3 then
         if foodView == 0 then 
-            if d < 0 then -- left
+            if d < 0 then
                 snakes[sel].turnLeft = true
                 snakes[sel].turnRight = false
-            elseif d > 0 then -- right
+            elseif d > 0 then
                 snakes[sel].turnLeft = false
                 snakes[sel].turnRight = true
             end
-        else -- placing food
-            if d < 0 then -- left
+
+        -- placing food
+        else 
+            if d < 0 then 
                 foodCursorX = libutil.wrap(foodCursorX - 1, 1, kDisplayWidth)
-            elseif d > 0 then -- right
+            elseif d > 0 then
                 foodCursorX = libutil.wrap(foodCursorX + 1, 1, kDisplayWidth)
             end
             screen.rect((foodCursorX-1)*8 + 2, (foodCursorY-1)*8 + 2, 2, 2)
@@ -837,19 +819,17 @@ function g.key(x, y, z)
     end
 end
 
--- check if head is at body segment of any snake
+
 function SnakeClass:killSnake()
-    -- snake can die
+    -- check if head is at body segment of any snake
     if self.immortal == 0 then
-        -- check each snake position
         for s = 1, SNAKE_MAX_COUNT do
-            -- check self
+            -- check self position
             if s == self.snakeID then
                 for i = 2, self.length do
                     -- if head is at a body segment of self
                     if (self.body[1].x == self.body[i].x) and 
                        (self.body[1].y == self.body[i].y) then
-                        -- snake should die
                         self:die()
                         return
                     end
@@ -861,7 +841,6 @@ function SnakeClass:killSnake()
                     -- if head is at a body segment of other snake
                     if (self.body[1].x == snakes[s].body[i].x) and 
                        (self.body[1].y == snakes[s].body[i].y) then
-                        -- snake should die
                         self:die()
                         return
                     end
@@ -871,10 +850,10 @@ function SnakeClass:killSnake()
     end
 end
 
--- local nornsDisplay = { width = 128, height = 64 }
--- x is to the right, y is down from top left corner
 
 function refreshGrid()
+    -- local nornsDisplay = { width = 128, height = 64 }
+    -- x is to the right, y is down from top left corner
 
     -- light up foods
     for y = 1, kDisplayHeight do
@@ -896,7 +875,7 @@ function refreshGrid()
     for s = 1, SNAKE_MAX_COUNT do
         if snakes[s].slithering == 1 then
             for i = 1, snakes[s].length do -- used to be #snakes[s].body, idk if that mattered
-                if (snakes[s].body[i].x > 0) and (snakes[s].body[i].y > 0) then -- do we need to check this?
+                if (snakes[s].body[i].x > 0) and (snakes[s].body[i].y > 0) then
                     g:led(snakes[s].body[i].x, snakes[s].body[i].y, 15)
                 end
             end
@@ -1293,9 +1272,7 @@ function setup_params()
         noteArray = mutil.generate_scale(0, scaleNames[val], 10)
     end)
 end
-  
--- TO DO OPTIMIZATIONS??
--- me from the future: never optimize, it didn't help
+
 function startGame(snek)
     while true do
         clock.sync(1/snakes[snek].speed)

@@ -9,8 +9,7 @@ Click the image above for a tutorial. For more discussion, see the thread on [li
 
 This is a sequencer script inspired by the game of snake. Each snake can turn left or right and only steps one square forward. Poke the grid or press K2 to use Food View to place food onto the grid. If the snake eats a food, a note will be played depending on the location on the grid the food was in and the length of the snake will increase. If a snake runs into itself or any other snake, the snake will die and respawn at the minimum length. However, each of these rules can be changed. The maximum length, whether or not a snake can die, whether or not a food spawns, how many snakes, and so on can all be changed to get different behaviors. There are 4 behaviors the snakes can take on as well, none, random, wander, and sequence. Depending on the behavior, snakes can automatically seek out food, or keep wandering forward indefinitely. Combining different snake behaviors and game rules generates a variety of musical sequences. See [this playlist](https://www.youtube.com/watch?v=NpIjsqzu0Q0&list=PLvUVlqry7k40gZtUj0rqv4FkUx6IMi0Ue) for a tutorial and many examples of how this script can be used.  
 
-There are no prerequisites other than a monome norns. This script supports nb. This script supports typing keyboard controls and monome grid controls.  
-select a snake, set speed, set behavior, place food, draw, slither, listen  
+There are no prerequisites other than a monome norns. This script supports [nb](https://llllllll.co/t/n-b-et-al-v0-1/60374) which you can use to download and install diffrent nb voices to use with the snakes if you get tired of using the built-in rudiments synthesizer. This script supports typing keyboard controls and monome grid controls.  
 
 # NORNS CONTROLS  
 __selected snake__:  
@@ -130,9 +129,10 @@ For each behavior, you can always turn the snake with ENC3.
 Snakes preserve their direction and behavior upon death.  
 
 ### 1 None!
-Snake moves forward, turn with ENC3!  
-Useful for actually playing the game Snake with!  
-Useful for predictable, repeating patterns.  
+Snake moves forward, turn left or right with ENC3.  
+Useful for actually playing the game Snake.  
+Useful for predictable, repeating patterns of snake movement.  
+Useful for drum machine style sequencing with each snake as a different percussion instrument and the foods as triggers.  
 
 ### 2 Whimsical  
 Snake turns randomly!  
