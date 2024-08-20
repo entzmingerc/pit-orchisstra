@@ -819,6 +819,69 @@ function g.key(x, y, z)
     end
 end
 
+-- Turn snake L/R
+function gamepad.dpad(axis, sign)
+   local sel = params:get("snake_select")
+
+   if foodView == 0 then
+      if axis == "X" then
+	 if sign < 0 then
+	    snakes[sel].turnLeft  = true
+	    snakes[sel].turnRight = false
+	 elseif sign > 0 then
+	    snakes[sel].turnLeft  = false
+	    snakes[sel].turnRight = true
+	 end
+      end
+
+   -- placing food
+   else
+      if axis == "X" then
+	 foodCursorX = libutil.wrap(foodCursorX + sign, 1, kDisplayWidth)
+      elseif axis == "Y" then
+	 foodCursorY = libutil.wrap(foodCursorY + sign, 1, kDisplayHeight)
+      end
+      screen.rect((foodCursorX-1)*8 + 2, (foodCursorY-1)*8 + 2, 2, 2)
+      screen.level(15)
+      screen.stroke()
+      screen.update()
+      g:led(foodCursorX, foodCursorY, 1)
+      g:refresh()
+   end
+end
+
+function gamepad.button(n, z)
+    local sel = params:get("snake_select")
+
+    -- toggle food place mode
+    if n=="A" and z==1 then
+        if foodView == 1 then
+            foodView = 0
+        else
+            foodView = 1
+        end
+
+    -- snake behavior toggle
+    elseif n=="B" and z==1 then
+        if foodView == 0 then
+            snakes[sel].behavior = libutil.wrap(snakes[sel].behavior + 1, 1, SNAKE_BEHAVIORS)
+            params:set("behavior_"..sel, snakes[sel].behavior)
+            popUpBehavior = 15 -- screen drawing timer (x * 1/15 seconds)
+
+        -- placing food
+        else
+            g.key(foodCursorX, foodCursorY, z)
+        end
+    end
+
+    if n=="SELECT" then
+       if z > 0 then
+	  sel = (sel + 1) % (SNAKE_MAX_COUNT + 1)
+       end
+       params:set("snake_select", sel)
+       popUpSelect = 15 -- set popUp time (x * 1/15 seconds)
+    end
+end
 
 function SnakeClass:killSnake()
     -- check if head is at body segment of any snake
