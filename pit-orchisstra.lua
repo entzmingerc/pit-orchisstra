@@ -819,18 +819,22 @@ function g.key(x, y, z)
     end
 end
 
--- Turn snake L/R
+-- ←/→ turn snake counterclockwise/clockwise
+-- ↑/↓ slither speed faster/slower
 function gamepad.dpad(axis, sign)
    local sel = params:get("snake_select")
 
    if foodView == 0 then
+      -- turn selected snake, left/right
       if axis == "X" then
+	 enc(3, sign)
+      -- speed, up/down
+      elseif axis == "Y" then
+	 print(axis, sign)
 	 if sign < 0 then
-	    snakes[sel].turnLeft  = true
-	    snakes[sel].turnRight = false
+	    enc(2, 1)
 	 elseif sign > 0 then
-	    snakes[sel].turnLeft  = false
-	    snakes[sel].turnRight = true
+	    enc(2, -1)
 	 end
       end
 
@@ -850,6 +854,10 @@ function gamepad.dpad(axis, sign)
    end
 end
 
+-- A toggle food mode/snake mode
+-- B cycle through snake behaviours; place food
+-- SELECT cycle through snakes
+-- START slither selected snake
 function gamepad.button(n, z)
     local sel = params:get("snake_select")
 
@@ -872,14 +880,14 @@ function gamepad.button(n, z)
         else
             g.key(foodCursorX, foodCursorY, z)
         end
-    end
-
-    if n=="SELECT" then
+    elseif n=="SELECT" and z==1 then
        if z > 0 then
 	  sel = libutil.wrap(sel + 1, 1, SNAKE_MAX_COUNT)
        end
        params:set("snake_select", sel)
        popUpSelect = 15 -- set popUp time (x * 1/15 seconds)
+    elseif n=="START" and z==1 then
+       keeb["Q"]() -- toggle snake slithering
     end
 end
 
