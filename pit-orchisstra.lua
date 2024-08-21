@@ -830,7 +830,6 @@ function gamepad.dpad(axis, sign)
 	 enc(3, sign)
       -- speed, up/down
       elseif axis == "Y" then
-	 print(axis, sign)
 	 if sign < 0 then
 	    enc(2, 1)
 	 elseif sign > 0 then
