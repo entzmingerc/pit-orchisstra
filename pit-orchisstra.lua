@@ -876,7 +876,7 @@ function gamepad.button(n, z)
 
     if n=="SELECT" then
        if z > 0 then
-	  sel = (sel + 1) % (SNAKE_MAX_COUNT + 1)
+	  sel = libutil.wrap(sel + 1, 1, SNAKE_MAX_COUNT)
        end
        params:set("snake_select", sel)
        popUpSelect = 15 -- set popUp time (x * 1/15 seconds)
