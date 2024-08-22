@@ -20,8 +20,8 @@ K2: toggle food view / snake view
 K3: cycle snake behaviors  
 
 __food view__:  
-E2: < down, > up  
-E3: < left, > right  
+E2: ← down, → up  
+E3: ← left, → right  
 K3: place/destroy food  
 if two player mode is on  
 E2 turns next snake (+1)  
@@ -58,11 +58,11 @@ SHIFT + W   increase snake transpose
 SHIFT + A   decrease max length (kill snake to decrease length)  
 SHIFT + S   decrease snake transpose  
 SHIFT + D   increase max length  
-U    toggle randomSpawn
-I    decrease spawnY (move up)
-J    decrease spawnX (move left)
-K    increase spawnY (move down)
-L    increase spawnX (move right)
+U    toggle randomSpawn  
+I    decrease spawnY (move up)  
+J    decrease spawnX (move left)  
+K    increase spawnY (move down)  
+L    increase spawnX (move right)  
 
 __food view__:  
 W   move up  
