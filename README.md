@@ -36,7 +36,7 @@ __slithering behaviors__:
 poke the grid to place/destroy food!  
 
 # KEYBOARD CONTROLS  
-__select snake, select view__:
+__select snake, select view__:  
 1   select snake 1  
 2   select snake 2  
 3   select snake 3  
@@ -85,7 +85,7 @@ V   increment scale (+1)
 /   toggle two player mode  
 
 # GAMEPAD CONTROLS  
-__selected snake controls__:
+__selected snake controls__:  
 ←   turn left  
 →   turn right  
 ↑   increase speed  
@@ -95,7 +95,7 @@ B   cycle snake behaviors
 SELECT   cycle selected snake  
 START    toggle slithering (TURN ON/OFF THE SNAKE)  
 
-__food view__:
+__food view__:  
 ↑   move up  
 ←   move left  
 →   move right  
