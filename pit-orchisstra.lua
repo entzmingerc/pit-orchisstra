@@ -633,7 +633,8 @@ function SnakeClass:grow()
             engine.freq(mutil.note_num_to_freq(snakeNote), self.snakeID) 
             engine.trigger(self.snakeID)
         end
-        player:note_on(snakeNote, 1)
+        --player:note_on(snakeNote, 1)
+	player:play_note(snakeNote, 1, 1)
         
         -- PLACE NEW FOOD
         if params:get("foodSpawn") == 1 then
