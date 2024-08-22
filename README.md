@@ -84,6 +84,27 @@ C   decrement scale (-1)
 V   increment scale (+1)  
 /   toggle two player mode  
 
+# GAMEPAD CONTROLS  
+__selected snake controls__:
+←   turn left  
+→   turn right  
+↑   increase speed  
+↓   decrease speed  
+A   toggle food view / snake view  
+B   cycle snake behaviors  
+SELECT   cycle selected snake  
+START    toggle slithering (TURN ON/OFF THE SNAKE)  
+
+__food view__:
+↑   move up  
+←   move left  
+→   move right  
+↓   move down  
+A   toggle food view / snake view  
+B   place/destroy food  
+SELECT   cycle selected snake  
+START    toggle slithering (TURN ON/OFF THE SNAKE)  
+
 # SNAKE PARAMETERS:  
 | Parameter | Description |
 | --- | --- |

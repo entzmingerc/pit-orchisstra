@@ -819,6 +819,64 @@ function g.key(x, y, z)
     end
 end
 
+-- ←/→ turn snake counterclockwise/clockwise
+-- ↑/↓ slither speed faster/slower
+function gamepad.dpad(axis, sign)
+   if foodView == 0 then
+      -- turn selected snake, left/right
+      if axis == "X" then
+	 enc(3, sign)
+      -- speed, up/down
+      elseif axis == "Y" then
+	 if sign < 0 then
+	    enc(2, 1)
+	 elseif sign > 0 then
+	    enc(2, -1)
+	 end
+      end
+
+   -- placing food
+   -- TODO: refactoring potential here to tap to E3
+   else
+      if axis == "X" then
+	 foodCursorX = libutil.wrap(foodCursorX + sign, 1, kDisplayWidth)
+      elseif axis == "Y" then
+	 foodCursorY = libutil.wrap(foodCursorY + sign, 1, kDisplayHeight)
+      end
+      screen.rect((foodCursorX-1)*8 + 2, (foodCursorY-1)*8 + 2, 2, 2)
+      screen.level(15)
+      screen.stroke()
+      screen.update()
+      g:led(foodCursorX, foodCursorY, 1)
+      g:refresh()
+   end
+end
+
+-- A toggle food mode/snake mode
+-- B cycle through snake behaviours; place food
+-- SELECT cycle through snakes
+-- START slither selected snake
+function gamepad.button(n, z)
+    local sel = params:get("snake_select")
+
+    -- toggle food place mode
+    if n=="A" and z==1 then
+       key(2, 1)
+
+    -- snake behavior toggle
+    elseif n=="B" and z==1 then
+       key(3, 1)
+    -- snake select
+    elseif n=="SELECT" and z==1 then
+       if z > 0 then
+	  sel = libutil.wrap(sel + 1, 1, SNAKE_MAX_COUNT)
+       end
+       params:set("snake_select", sel)
+       popUpSelect = 15 -- set popUp time (x * 1/15 seconds)
+    elseif n=="START" and z==1 then
+       keeb["Q"]() -- toggle snake slithering
+    end
+end
 
 function SnakeClass:killSnake()
     -- check if head is at body segment of any snake
