@@ -3,7 +3,7 @@ the game of snake
 a group of snakes is a pit  
 live loooong and prosper  
 
-[![pit orchisstra tutorial](pittutorial.png)](https://www.youtube.com/watch?v=NpIjsqzu0Q0)
+[![pit orchisstra tutorial](https://github.com/entzmingerc/pit-orchisstra/blob/main/pittutorial.png)](https://www.youtube.com/watch?v=NpIjsqzu0Q0)
 
 Click the image above for a tutorial. For more discussion, see the thread on [lines](https://llllllll.co/t/pit-orchisstra/66521).    
 
